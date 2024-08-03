@@ -1,0 +1,20 @@
+﻿<Window x:Class="helloEyes.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"        
+        WindowStyle="None" AllowsTransparency="True"
+        Loaded="OnLoad" Unloaded="OnUnload">
+    <Grid x:Name="m_ClientArea" MouseLeftButtonDown="OnMouseLeftButtonDown" SizeChanged="OnSizeChanged">
+        <Image Source=".\\logo.png" Stretch="Fill" />
+        <Canvas>
+            <Ellipse x:Name="m_LeftEye" Fill="#E6007F"/>
+            <Ellipse x:Name="m_RightEye" Fill="#E6007F"/>
+        </Canvas>
+        <Grid.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header="背景ON/OFF(サイズ変更)" Checked="OnBackgroundCheckChanged" Unchecked="OnBackgroundCheckChanged"  
+                          IsChecked="True" IsCheckable="True"/>
+                <MenuItem Header="終了" Click="Exit"/>
+            </ContextMenu>
+        </Grid.ContextMenu>
+    </Grid>
+</Window>
