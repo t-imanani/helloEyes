@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -13,16 +15,23 @@ namespace helloEyes
     /// </summary>
     public partial class MainWindow : Window
     {
-        const double DEFAULT_AREA_WIDTH  = 256;
-        const double DEFAULT_AREA_HEIGHT = 256;
+        const double DEFAULT_CLIENT_AREA_WIDTH  = 256;
+        const double DEFAULT_CLIENT_AREA_HEIGHT = 256;
 
         const double DEFAULT_EYE_WIDTH  = 25;
         const double DEFAULT_EYE_HEIGHT = 50;
 
-        /// <summary>
-        /// 閉じてる途中か？
-        /// </summary>
-        private bool m_IsClosing = false;
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct POINT
+        {
+            public int x;
+            public int y;
+
+            public static implicit operator Point(POINT point)
+            {
+                return new Point(point.x, point.y);
+            }
+        }
 
         [DllImport("user32.dll")]
         private static extern bool GetCursorPos(out POINT lpPoint);
@@ -34,8 +43,8 @@ namespace helloEyes
         {
             InitializeComponent();
 
-            this.Width  = DEFAULT_AREA_WIDTH;
-            this.Height = DEFAULT_AREA_HEIGHT;
+            this.Width  = DEFAULT_CLIENT_AREA_WIDTH;
+            this.Height = DEFAULT_CLIENT_AREA_HEIGHT;
 
             this.m_LeftEye.Width = DEFAULT_EYE_WIDTH;
             this.m_LeftEye.Height = DEFAULT_EYE_HEIGHT;
@@ -44,7 +53,7 @@ namespace helloEyes
         }
 
         /// <summary>
-        /// 瞳の位置更新
+        /// 瞳オブジェクトの位置更新
         /// </summary>
         private void UpdateEyesPosition()
         {
@@ -68,8 +77,8 @@ namespace helloEyes
         /// <param name="eye"></param>
         /// <param name="w"></param>
         /// <param name="h"></param>
-        /// <param name="offsetX"></param>
-        /// <param name="offsetY"></param>
+        /// <param name="offset"></param>
+        /// <param name="maxRadius"></param>
         /// <param name="mouseCursor"></param>
         /// <param name="clientOrigin"></param>
         private void SetEyePos(Ellipse eye, double w, double h, Point offset, Point maxRadius, Point mouseCursor, Point clientOrigin)
@@ -123,12 +132,12 @@ namespace helloEyes
         /// </summary>
         private void UpdateEyesSize()
         {
-            var scaleX = m_ClientArea.ActualWidth  / DEFAULT_AREA_WIDTH;
-            var scaleY = m_ClientArea.ActualHeight / DEFAULT_AREA_HEIGHT;
+            var scaleX = m_ClientArea.ActualWidth  / DEFAULT_CLIENT_AREA_WIDTH;
+            var scaleY = m_ClientArea.ActualHeight / DEFAULT_CLIENT_AREA_HEIGHT;
 
-            this.m_LeftEye.Width = scaleX * DEFAULT_EYE_WIDTH;
-            this.m_LeftEye.Height = scaleY * DEFAULT_EYE_HEIGHT;
-            this.m_RightEye.Width = scaleX * DEFAULT_EYE_WIDTH;
+            this.m_LeftEye.Width   = scaleX * DEFAULT_EYE_WIDTH;
+            this.m_LeftEye.Height  = scaleY * DEFAULT_EYE_HEIGHT;
+            this.m_RightEye.Width  = scaleX * DEFAULT_EYE_WIDTH;
             this.m_RightEye.Height = scaleY * DEFAULT_EYE_HEIGHT;
         }
 
@@ -139,34 +148,17 @@ namespace helloEyes
         /// <param name="e"></param>
         private void OnLoad(object sender, RoutedEventArgs e)
         {
-            MouseHook.Start();
-            MouseHook.MouseAction += new EventHandler(OnGlobalMouseMove);
-            UpdateEyesPosition();
-        }
-
-        /// <summary>
-        /// アンロード時の処理
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void OnUnload(object sender, RoutedEventArgs e)
-        {
-            MouseHook.Stop();
-            MouseHook.MouseAction -= new EventHandler(OnGlobalMouseMove);
-        }
-
-        /// <summary>
-        /// グローバルなMouseMove受信処理
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void OnGlobalMouseMove(object sender, EventArgs e)
-        {
-            if (this.m_IsClosing)
+            Task.Run(() =>
             {
-                return;
-            }
-            UpdateEyesPosition();
+                while (true)
+                {
+                    Application.Current?.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Render, new Action(() =>
+                    {
+                        UpdateEyesPosition();
+                    }));
+                    Thread.Sleep(30);
+                }
+            });             
         }
 
         /// <summary>
@@ -197,7 +189,6 @@ namespace helloEyes
         /// <param name="e"></param>
         private void Exit(object sender, RoutedEventArgs e)
         {
-            this.m_IsClosing = true;
             this.Close();
         }
 
